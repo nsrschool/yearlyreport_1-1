@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบรายงานผลการเรียนรู้รายปี (Yearly Report System)</title>
+    <title>ระบบรายงานผลการเรียนรู้รายปี NSR</title>
     
     <!-- CSS Frameworks -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -148,13 +148,9 @@
                     <i class="fas fa-graduation-cap"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold text-slate-800 leading-none">ระบบรายงานผลการเรียนรู้รายปี</h1>
+                    <h1 class="text-lg font-bold text-slate-800 leading-none">ระบบรายงานผลการเรียนรู้รายปี ป.1/1</h1>
                     <div class="flex items-center gap-3 mt-1">
                         <span class="text-[10px] text-slate-500 font-medium">หลักสูตรการศึกษาประถมศึกษาตอนต้น (ป.1-3) พุทธศักราช 2568</span>
-                        <!-- Local Save Status -->
-                        <span id="save-status" class="text-[10px] text-slate-400 font-bold opacity-0 transition-opacity duration-500 flex items-center gap-1">
-                            <i class="fas fa-hdd"></i> Local Saved
-                        </span>
                         <!-- Cloud Save Status -->
                         <span id="cloud-status" class="hidden text-[10px] font-bold transition-colors duration-300 flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-400">
                             <i class="fas fa-cloud"></i> <span id="cloud-status-text">Cloud Standby</span>
@@ -165,8 +161,8 @@
             
             <div class="flex items-center gap-2">
                  <!-- Cloud Save (Google Sheets) -->
-                 <button onclick="setupCloudConnection()" id="btn-cloud-connect" class="flex items-center gap-2 bg-white text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-50 transition shadow-sm mr-2" title="ตั้งค่าการเชื่อมต่อ">
-                    <i class="fab fa-google-drive text-sm"></i> เชื่อมต่อ Cloud
+                 <button onclick="setupCloudConnection()" id="btn-cloud-connect" class="flex items-center gap-2 bg-white text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-50 transition shadow-sm mr-2" title="ตรวจสอบสถานะ">
+                    <i class="fab fa-google-drive text-sm"></i> สถานะ Cloud
                 </button>
 
                 <!-- Data Management Group -->
@@ -220,8 +216,8 @@
                 </button>
             </nav>
             <div class="p-4 border-t border-slate-100">
-                <div class="bg-blue-50 p-3 rounded-lg border border-blue-100 text-[10px] text-blue-800 leading-relaxed">
-                    <i class="fas fa-save mr-1"></i> ระบบบันทึกอัตโนมัติ (Auto-save) ทั้งในเครื่องและ Cloud (เมื่อตั้งค่า)
+                <div class="bg-green-50 p-3 rounded-lg border border-green-100 text-[10px] text-green-800 leading-relaxed">
+                    <i class="fas fa-check-circle mr-1"></i> <b>สถานะระบบ:</b> ระบบจะบันทึกข้อมูลลง Google Sheets โดยอัตโนมัติเมื่อมีการแก้ไขข้อมูล (จำเป็นต้องใส่ URL ในโค้ด)
                 </div>
             </div>
         </aside>
@@ -614,9 +610,9 @@
         
         // ==========================================
         // [[ ส่วนตั้งค่าการเชื่อมต่อ Google Sheets ]]
-        // นำ Web App URL มาวางในเครื่องหมายคำพูดด้านล่างนี้
+        // นำ Web App URL มาวางในเครื่องหมายคำพูดด้านล่างนี้ (จำเป็นต้องใส่เพื่อให้ระบบบันทึกอัตโนมัติทำงาน)
         // ตัวอย่าง: const CONFIG_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx.../exec";
-        const CONFIG_WEB_APP_URL = ""; 
+        const CONFIG_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxHXuhGiAtNrPM4IB9q9w0rCPgCZg2MLKi-F2aCzAQxjVAhBu10Ajst3yN5vKmREIwggw/exec"; 
         // ==========================================
 
         const competencyDefaults = [
@@ -643,6 +639,7 @@
             4: ["ทำได้ดีเยี่ยม เป็นแบบอย่างได้", "มีความคิดสร้างสรรค์ดีมาก", "ถ่ายทอดความรู้ให้เพื่อนได้", "มีความเป็นผู้นำ"]
         };
 
+        // Initialize with Defaults (No LocalStorage Load)
         let appData = {
             settings: { 
                 year: "2568", 
@@ -672,7 +669,7 @@
 
         // --- Core Functions ---
         function init() {
-            loadData();
+            // No loadData() called here
             renderSettings();
             renderCompetencyConfig();
             renderAllAssessTables();
@@ -682,29 +679,77 @@
             renderDashboard(); 
             document.getElementById('logo-upload').addEventListener('change', handleLogoUpload);
             
-            // ตรวจสอบสถานะ Cloud ตั้งแต่เริ่ม
             updateCloudStatusUI();
-        }
-
-        // --- Helper: Get Unique Storage Key based on Pathname ---
-        function getStorageKey() {
-            let path = "/YearlyReportSystem";
-            try {
-                path = decodeURIComponent(window.location.pathname);
-            } catch(e) {
-                console.warn("Could not determine pathname, using fallback.");
-            }
-            return 'app_data_' + path;
-        }
-
-        // --- Auto-Save System (Local & Cloud) ---
-        function autoSave() {
-            // 1. Save Local Storage (Instant)
-            const key = getStorageKey();
-            localStorage.setItem(key, JSON.stringify(appData));
-            showSaveStatus();
             
-            // 2. Trigger Cloud Auto-Save (Debounced)
+            // เพิ่มบรรทัดนี้: เรียกฟังก์ชันโหลดข้อมูลจาก Cloud ทันทีเมื่อเปิดเว็บ
+            if (CONFIG_WEB_APP_URL) {
+                loadFromCloud();
+            }
+        }
+
+        // --- เพิ่มฟังก์ชันใหม่สำหรับดึงข้อมูล ---
+        async function loadFromCloud() {
+            const url = CONFIG_WEB_APP_URL;
+            if (!url) return;
+
+            updateCloudStatusUI('pending'); // ใช้สถานะ pending เพื่อหมุนติ้วๆ บอกว่ากำลังโหลด
+            document.getElementById('cloud-status-text').innerText = "กำลังโหลด...";
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.status === 'error') {
+                    throw new Error(data.error);
+                }
+
+                // ถ้ามีข้อมูล Settings กลับมา ให้อัปเดต
+                if (data.settings && Object.keys(data.settings).length > 0) {
+                    // ผสานค่าเดิมกับค่าใหม่ (เพื่อเก็บ Logo ไว้ถ้าไม่ได้ส่งมา)
+                    appData.settings = { ...appData.settings, ...data.settings };
+                    // แปลงค่าตัวเลขกลับ
+                    if(appData.settings.totalDays) appData.settings.totalDays = parseInt(appData.settings.totalDays);
+                }
+
+                // ถ้ามี Competencies กลับมา
+                if (data.competencies && data.competencies.length > 0) {
+                    appData.competencies = data.competencies;
+                }
+
+                // ถ้ามี Students กลับมา
+                if (data.students && data.students.length > 0) {
+                    appData.students = data.students;
+                }
+
+                // รีเฟรชหน้าจอทั้งหมดด้วยข้อมูลใหม่
+                renderSettings();
+                renderCompetencyConfig();
+                renderAllAssessTables();
+                renderStudentList();
+                updateStudentSelect();
+                updateCommentStudentSelect();
+                renderDashboard();
+
+                updateCloudStatusUI('saved'); // เปลี่ยนสถานะเป็นพร้อมใช้งาน
+                // alert("โหลดข้อมูลล่าสุดจาก Google Sheets เรียบร้อยแล้ว"); // จะเปิดก็ได้ถ้าอยากให้แจ้งเตือน
+
+            } catch (error) {
+                console.error("Error loading data:", error);
+                updateCloudStatusUI('error');
+                // ไม่ต้อง alert กวนใจถ้าเป็นครั้งแรก (Sheet ยังว่าง)
+                if(error.toString().indexOf("Sheet not found") === -1) {
+                     alert("ไม่สามารถดึงข้อมูลล่าสุดได้: " + error.message);
+                } else {
+                     updateCloudStatusUI('idle'); // กลับสู่สถานะปกติถ้ายังไม่มีข้อมูล
+                }
+            }
+        }
+
+        // --- Auto-Save System (In-Memory & Cloud Only) ---
+        function autoSave() {
+            // 1. In-Memory: data variable `appData` is already updated by the input events.
+            // 2. No Local Storage saving.
+            // 3. Trigger Cloud Auto-Save (Debounced)
             triggerCloudAutoSave();
 
             // Optional: Re-render dashboard if visible
@@ -713,33 +758,22 @@
             }
         }
 
-        function showSaveStatus() {
-            const el = document.getElementById('save-status');
-            el.style.opacity = '1';
-            setTimeout(() => { el.style.opacity = '0'; }, 2000);
-        }
-
         // --- Cloud Auto-Save Logic ---
         function triggerCloudAutoSave() {
-            // ใช้ URL จาก Config ในโค้ดก่อน ถ้าไม่มีค่อยไปดูใน LocalStorage
-            const url = CONFIG_WEB_APP_URL || localStorage.getItem('gas_url');
-            if (!url) return; // ไม่ทำอะไรถ้ายังไม่ได้เชื่อมต่อ
+            const url = CONFIG_WEB_APP_URL;
+            if (!url) return; 
 
-            // แสดงสถานะ "รอการบันทึก..."
             updateCloudStatusUI('pending');
 
-            // ล้าง Timer เก่า (Reset เวลาถ้ามีการพิมพ์ต่อเนื่อง)
             if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
 
-            // ตั้ง Timer ใหม่
             cloudSaveTimer = setTimeout(() => {
-                saveToCloud(true); // true = silent mode (auto save)
+                saveToCloud(true); // true = silent mode
             }, CLOUD_SAVE_DELAY);
         }
 
         function updateCloudStatusUI(state = 'idle') {
-            // ใช้ URL จาก Config ในโค้ดก่อน
-            const url = CONFIG_WEB_APP_URL || localStorage.getItem('gas_url');
+            const url = CONFIG_WEB_APP_URL;
             const el = document.getElementById('cloud-status');
             const textEl = document.getElementById('cloud-status-text');
             const iconEl = el.querySelector('i');
@@ -749,21 +783,16 @@
                 el.classList.add('hidden');
                 btnConnect.classList.remove('bg-green-100', 'text-green-800');
                 btnConnect.classList.add('bg-white', 'text-green-700');
-                btnConnect.innerHTML = '<i class="fab fa-google-drive text-sm"></i> เชื่อมต่อ Cloud';
+                btnConnect.innerHTML = '<i class="fas fa-exclamation-circle text-sm text-red-500"></i> ยังไม่ตั้งค่า Cloud';
+                btnConnect.title = "กรุณาใส่ Web App URL ในโค้ด";
                 return;
             }
 
-            // ถ้ามี URL แสดงว่าเชื่อมต่อแล้ว
             el.classList.remove('hidden');
             btnConnect.classList.remove('bg-white', 'text-green-700');
             btnConnect.classList.add('bg-green-100', 'text-green-800');
-            // แสดงข้อความต่างกันถ้าเป็น URL ที่ฝังมาในโค้ด
-            if (CONFIG_WEB_APP_URL) {
-                btnConnect.innerHTML = '<i class="fas fa-link text-sm"></i> เชื่อมต่อ (Embedded)';
-                btnConnect.title = "URL ถูกฝังอยู่ในโค้ดแล้ว";
-            } else {
-                btnConnect.innerHTML = '<i class="fas fa-link text-sm"></i> เชื่อมต่อแล้ว';
-            }
+            btnConnect.innerHTML = '<i class="fas fa-check-circle text-sm"></i> ระบบ Cloud พร้อมใช้งาน';
+            btnConnect.title = "ระบบพร้อมบันทึกอัตโนมัติ";
 
             if (state === 'pending') {
                 el.className = "text-[10px] font-bold transition-colors duration-300 flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-600";
@@ -782,7 +811,6 @@
                 iconEl.className = "fas fa-exclamation-triangle";
                 textEl.innerText = "ผิดพลาด";
             } else {
-                // Idle
                 el.className = "text-[10px] font-bold transition-colors duration-300 flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-400";
                 iconEl.className = "fas fa-cloud";
                 textEl.innerText = "พร้อมใช้งาน";
@@ -813,7 +841,7 @@
             document.querySelectorAll('.nav-item').forEach(el => {
                 el.classList.remove('bg-indigo-50', 'text-indigo-700');
                 el.classList.add('text-slate-600');
-                el.classList.remove('active'); // Remove active from all
+                el.classList.remove('active'); 
             });
             const btn = document.getElementById('nav-' + tabId);
             if(btn) {
@@ -828,7 +856,7 @@
             
             if(tabId === 'report') updateStudentSelect();
             if(tabId === 'students') renderStudentList();
-            if(tabId === 'home') renderDashboard(); // Render charts when tab is shown
+            if(tabId === 'home') renderDashboard(); 
         }
 
         function switchAssessSubTab(subTab) {
@@ -848,29 +876,23 @@
 
         // --- Dashboard Logic ---
         function renderDashboard() {
-            // Calculate Stats
             const totalStudents = appData.students.length;
             if(totalStudents === 0) return;
 
-            // 1. Avg Attendance
             const totalAtt = appData.students.reduce((sum, s) => sum + (parseInt(s.attendance) || 0), 0);
             const avgAtt = Math.round(totalAtt / totalStudents);
 
-            // 2. Pass Rates
             const actPass = appData.students.filter(s => s.actPass).length;
             const charPass = appData.students.filter(s => s.charPass).length;
             const actPct = Math.round((actPass / totalStudents) * 100);
             const charPct = Math.round((charPass / totalStudents) * 100);
 
-            // Update UI
             document.getElementById('dash-total-students').innerText = totalStudents;
             document.getElementById('dash-avg-attendance').innerText = avgAtt + "%";
             document.getElementById('dash-act-pass').innerText = actPct + "%";
             document.getElementById('dash-char-pass').innerText = charPct + "%";
 
-            // 3. Chart Data Preparation
-            
-            // Bar Chart Data: Count students per level for each competency
+            // Chart Data Preparation
             const levelCountsPerComp = {
                 1: new Array(appData.competencies.length).fill(0),
                 2: new Array(appData.competencies.length).fill(0),
@@ -885,21 +907,18 @@
                 });
             });
 
-            // Doughnut Chart Data: Count students by OVERALL average level
-            const overallStudentLevels = [0, 0, 0, 0]; // Index 0=Level 1, 1=Level 2...
+            const overallStudentLevels = [0, 0, 0, 0]; 
             appData.students.forEach(s => {
                 const sum = s.scores.reduce((a, b) => a + (b || 1), 0);
-                const avg = Math.round(sum / s.scores.length); // Round to nearest level
-                const levelIndex = Math.max(0, Math.min(3, avg - 1)); // Ensure 0-3 range
+                const avg = Math.round(sum / s.scores.length); 
+                const levelIndex = Math.max(0, Math.min(3, avg - 1)); 
                 overallStudentLevels[levelIndex]++;
             });
 
-            // 4. Render/Update Charts
             renderCharts(levelCountsPerComp, overallStudentLevels);
         }
 
         function renderCharts(levelCountsPerComp, overallStudentLevels) {
-            // Competency Bar Chart (Stacked)
             const ctx1 = document.getElementById('competencyChart').getContext('2d');
             if (competencyChart) competencyChart.destroy();
             
@@ -908,10 +927,10 @@
                 data: {
                     labels: appData.competencies.map((_, i) => `ข้อที่ ${i+1}`),
                     datasets: [
-                        { label: 'เริ่มต้น', data: levelCountsPerComp[1], backgroundColor: '#ef4444' }, // Red
-                        { label: 'พัฒนา', data: levelCountsPerComp[2], backgroundColor: '#f97316' }, // Orange
-                        { label: 'ชำนาญ', data: levelCountsPerComp[3], backgroundColor: '#3b82f6' }, // Blue
-                        { label: 'เชี่ยวชาญ', data: levelCountsPerComp[4], backgroundColor: '#10b981' } // Green
+                        { label: 'เริ่มต้น', data: levelCountsPerComp[1], backgroundColor: '#ef4444' }, 
+                        { label: 'พัฒนา', data: levelCountsPerComp[2], backgroundColor: '#f97316' }, 
+                        { label: 'ชำนาญ', data: levelCountsPerComp[3], backgroundColor: '#3b82f6' }, 
+                        { label: 'เชี่ยวชาญ', data: levelCountsPerComp[4], backgroundColor: '#10b981' } 
                     ]
                 },
                 options: {
@@ -938,7 +957,6 @@
                 }
             });
 
-            // Level Doughnut Chart (Overall Students)
             const ctx2 = document.getElementById('levelChart').getContext('2d');
             if (levelChart) levelChart.destroy();
             
@@ -1014,7 +1032,6 @@
             const s = appData.students[idx];
             s[field] = value;
             
-            // Sync full name if parts change
             if (['prefix', 'firstname', 'lastname'].includes(field)) {
                 const p = s.prefix || '';
                 const f = s.firstname || '';
@@ -1056,41 +1073,36 @@
                 }
             };
             reader.readAsArrayBuffer(file);
-            e.target.value = ''; // Reset input
+            e.target.value = ''; 
         }
 
         function processImportedData51(data) {
             const total = parseInt(appData.settings.totalDays) || 200;
             const existingScores = {};
-            // Backup existing details
             appData.students.forEach(s => {
                 const key = s.studentId || s.number; 
                 if(key) existingScores[key] = { comments: s.comments, remarks: s.remarks, attendance: s.attendance, daysAttended: s.daysAttended };
             });
 
             const newStudents = data.map(row => {
-                // 1. Basic Info Extraction
                 const number = row['เลขที่'] || row['Number'] || 0;
                 const sid = row['เลขประจำตัว'] || row['ID'] ? String(row['เลขประจำตัว'] || row['ID']) : "";
                 
-                // Name Extraction
                 let fullName = "";
                 if(row['ชื่อ - สกุล']) fullName = row['ชื่อ - สกุล'];
                 else if(row['ชื่อ-สกุล']) fullName = row['ชื่อ-สกุล'];
                 else if (row['ชื่อ'] && row['นามสกุล']) fullName = `${row['คำนำหน้า']||''}${row['ชื่อ']} ${row['นามสกุล']}`.trim();
                 else {
-                     const nameKey = Object.keys(row).find(k => k.includes('ชื่อ'));
-                     if(nameKey) fullName = row[nameKey];
+                      const nameKey = Object.keys(row).find(k => k.includes('ชื่อ'));
+                      if(nameKey) fullName = row[nameKey];
                 }
 
-                // Helper to get grade
                 const getGrade = (keywords) => {
                     const key = Object.keys(row).find(k => keywords.every(kw => k.includes(kw)));
                     const val = parseFloat(row[key]);
                     return isNaN(val) ? 0 : val;
                 };
 
-                // 2. Extract Specific Subject Grades
                 const thai = getGrade(['ภาษาไทย']);
                 const eng = getGrade(['ภาษาอังกฤษ']);
                 const math = getGrade(['คณิตศาสตร์']);
@@ -1101,35 +1113,23 @@
                 const health = getGrade(['สุขภาพ']);
                 const art = getGrade(['ศิลปะ']);
 
-                // 3. Calculate Weighted Scores for Competencies 1-8 (Simulated mapping)
                 const scores = [];
 
-                // Comp 1 & 2 (Language): Thai 70%, Eng 30%
                 const c1_2_val = (thai * 0.7) + (eng * 0.3);
                 const c1_2_grade = convertGrade51To68(c1_2_val);
-                scores[0] = c1_2_grade; // Comp 1
-                scores[1] = c1_2_grade; // Comp 2
+                scores[0] = c1_2_grade; 
+                scores[1] = c1_2_grade; 
 
-                // Comp 3 (Math): Math 100%
                 scores[2] = convertGrade51To68(math);
 
-                // Comp 4 (Science/Tech): Sci 80%, Tech 20%
                 const c4_val = (sci * 0.8) + (tech * 0.2);
                 scores[3] = convertGrade51To68(c4_val);
 
-                // Comp 5 (Social): Social 100%
                 scores[4] = convertGrade51To68(soc);
-
-                // Comp 6 (Econ/Sufficiency): Econ 100%
                 scores[5] = convertGrade51To68(econ);
-
-                // Comp 7 (Health): Health 100%
                 scores[6] = convertGrade51To68(health);
-
-                // Comp 8 (Art/Culture): Art 100%
                 scores[7] = convertGrade51To68(art);
 
-                // Fill remaining with default '2' if competencies > 8
                 while(scores.length < appData.competencies.length) scores.push(2);
 
                 const key = sid || number;
@@ -1139,7 +1139,7 @@
                     id: Date.now() + Math.random(),
                     number: number,
                     studentId: sid,
-                    prefix: "", // CSV usually has prefix attached to name or separate
+                    prefix: "", 
                     firstname: "",
                     lastname: "",
                     name: fullName || "ไม่ระบุชื่อ",
@@ -1165,11 +1165,6 @@
         }
 
         function convertGrade51To68(grade) {
-            // Conversion Logic:
-            // 3.5 - 4.0 => 4 (เชี่ยวชาญ)
-            // 2.5 - 3.49 => 3 (ชำนาญ)
-            // 1.5 - 2.49 => 2 (พัฒนา)
-            // 0 - 1.49   => 1 (เริ่มต้น)
             if (grade >= 3.5) return 4;
             if (grade >= 2.5) return 3;
             if (grade >= 1.5) return 2;
@@ -1197,7 +1192,7 @@
                 }
             };
             reader.readAsArrayBuffer(file);
-            e.target.value = ''; // Reset input
+            e.target.value = ''; 
         }
 
         function processImportedData(data) {
@@ -1533,7 +1528,15 @@
                     const d = JSON.parse(evt.target.result);
                     if(d.students && d.competencies) {
                         if(confirm("ยืนยันการกู้คืนข้อมูล? ข้อมูลปัจจุบันจะถูกแทนที่")) {
-                            appData = d; autoSave(); location.reload();
+                            appData = d; 
+                            // Re-render everything manually since we can't just reload
+                            renderSettings();
+                            renderCompetencyConfig();
+                            renderAllAssessTables();
+                            renderStudentList();
+                            updateStudentSelect();
+                            updateCommentStudentSelect();
+                            renderDashboard();
                         }
                     } else alert("ไฟล์ไม่ถูกต้อง");
                 } catch(err) { alert("เกิดข้อผิดพลาดในการอ่านไฟล์"); }
@@ -1567,34 +1570,7 @@
 
         function resetData() {
             if(confirm("⚠️ คำเตือน: คุณต้องการล้างข้อมูลทั้งหมดใช่หรือไม่?\nการกระทำนี้ไม่สามารถย้อนกลับได้")) {
-                const key = getStorageKey();
-                localStorage.removeItem(key);
-                location.reload();
-            }
-        }
-
-        // --- Persistence ---
-        function loadData() {
-            const key = getStorageKey();
-            const s = localStorage.getItem(key);
-            if(s) {
-                try { 
-                    appData = JSON.parse(s); 
-                    // Migrations
-                    if(!appData.settings.totalDays) appData.settings.totalDays = 200;
-                    if(appData.settings.teacher && !appData.settings.teacher1) {
-                        appData.settings.teacher1 = appData.settings.teacher;
-                        delete appData.settings.teacher;
-                    }
-                    if(!appData.settings.teacher2) appData.settings.teacher2 = "";
-
-                    appData.students.forEach(std => {
-                        if(std.daysAttended === undefined) {
-                            std.daysAttended = Math.round((parseInt(std.attendance)/100) * appData.settings.totalDays);
-                        }
-                    });
-                } catch(e) { console.error("Data corrupted"); }
-                if(!appData.competencies) appData.competencies = competencyDefaults.map(c => ({ title: c, target: 2 }));
+                location.reload(); // Simple reload clears everything since no localStorage
             }
         }
 
@@ -1756,47 +1732,28 @@
         
         // --- Google Sheets Logic ---
         function setupCloudConnection() {
-            // ถ้ามีการฝัง URL ไว้ในโค้ดแล้ว ไม่ต้องให้กรอกใหม่
             if (CONFIG_WEB_APP_URL) {
-                alert("ระบบเชื่อมต่ออัตโนมัติด้วย URL ที่ฝังในโค้ดแล้ว:\n\n" + CONFIG_WEB_APP_URL + "\n\n(หากต้องการเปลี่ยน กรุณาแก้ไขที่ตัวแปร CONFIG_WEB_APP_URL ในไฟล์ HTML)");
+                alert("สถานะ: เชื่อมต่อ Web App URL แล้ว\n\nระบบจะบันทึกข้อมูลอัตโนมัติเมื่อมีการแก้ไข");
                 triggerCloudAutoSave();
-                return;
-            }
-
-            let url = localStorage.getItem('gas_url');
-            let newUrl = prompt("กรุณาวาง Web App URL จาก Google Apps Script\n(ขึ้นต้นด้วย https://script.google.com/macros/s/...)", url || "");
-            
-            if (newUrl === null) return; // Cancelled
-
-            if (newUrl.trim() === "") {
-                if(confirm("ต้องการยกเลิกการเชื่อมต่อ Cloud ใช่หรือไม่?")) {
-                    localStorage.removeItem('gas_url');
-                    updateCloudStatusUI();
-                }
-                return;
-            }
-
-            if (newUrl.startsWith("https://script.google.com")) {
-                localStorage.setItem('gas_url', newUrl);
-                alert("เชื่อมต่อสำเร็จ! ระบบจะทำการบันทึกข้อมูลลง Cloud โดยอัตโนมัติเมื่อมีการแก้ไข");
-                triggerCloudAutoSave(); // Try saving immediately
             } else {
-                alert("URL ไม่ถูกต้อง กรุณาลองใหม่");
+                alert("ยังไม่ได้ตั้งค่า Web App URL\n\nกรุณาเปิดไฟล์ HTML และใส่ URL ที่ได้จาก Google Apps Script ลงในตัวแปร 'CONFIG_WEB_APP_URL'");
             }
         }
 
         async function saveToCloud(silent = false) {
-            // ใช้ URL จาก Config ในโค้ดก่อน
-            const url = CONFIG_WEB_APP_URL || localStorage.getItem('gas_url');
-            if (!url) return;
+            const url = CONFIG_WEB_APP_URL;
+            if (!url) {
+                updateCloudStatusUI(); // Show not configured state
+                return;
+            }
 
+            // In Auto-Save mode, we skip confirmation
             if (!silent && !confirm("ยืนยันการบันทึกข้อมูลลง Google Sheets?")) return;
             
             // UI Updates
             if(silent) updateCloudStatusUI('saving');
             else {
                 const btn = document.getElementById('btn-cloud-connect');
-                const originalText = btn.innerHTML;
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังส่ง...';
                 btn.disabled = true;
             }
@@ -1820,9 +1777,9 @@
             } finally {
                 if (!silent) {
                     const btn = document.getElementById('btn-cloud-connect');
-                    btn.innerHTML = '<i class="fas fa-link text-sm"></i> เชื่อมต่อแล้ว';
+                    btn.innerHTML = '<i class="fas fa-check-circle text-sm"></i> สถานะ Cloud';
                     btn.disabled = false;
-                    updateCloudStatusUI('saved'); // Sync UI status
+                    updateCloudStatusUI('saved'); 
                 }
             }
         }
